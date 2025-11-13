@@ -8,6 +8,7 @@ import cg.xis.eradio.dto.request.StationSearchRequest;
 import cg.xis.eradio.dto.response.PageResponse;
 import cg.xis.eradio.dto.response.RadioStationResponse;
 import cg.xis.eradio.infrastructure.client.RadioBrowserApiClient;
+import cg.xis.eradio.infrastructure.client.dto.RadioBrowserStationDto;
 import cg.xis.eradio.infrastructure.mapper.RadioStationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,20 +32,79 @@ public class RadioStationService {
     private final RadioBrowserApiClient radioBrowserApiClient;
     private final RadioStationMapper radioStationMapper;
 
-    @Transactional
+    @Transactional(readOnly = true)
     public PageResponse<RadioStationResponse> searchStations(StationSearchRequest request, User user) {
-        // First, try to fetch from external API and sync to database
-        syncStationsFromApi(request);
-
-        // Then search in database
-        Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
-        Page<RadioStation> stationsPage = radioStationRepository.searchStations(
+        // Fetch stations directly from Radio Browser API (no DB save)
+        List<RadioBrowserStationDto> apiStations = radioBrowserApiClient.searchStations(
             request.getName(),
             request.getCountry(),
             request.getLanguage(),
             request.getTags(),
-            pageable
+            100 // Limit for API call
         );
+
+        // Get user's favorite station UUIDs from saved stations in DB
+        Set<String> favoriteStationUuids = favoriteRepository.findByUser(user, Pageable.unpaged())
+            .getContent()
+            .stream()
+            .map(fav -> {
+                RadioStation station = fav.getRadioStation();
+                return station != null ? station.getStationUuid() : null;
+            })
+            .filter(uuid -> uuid != null)
+            .collect(Collectors.toSet());
+
+        // Apply pagination manually (since API doesn't support pagination)
+        int page = request.getPage();
+        int size = request.getSize();
+        int start = page * size;
+        int end = Math.min(start + size, apiStations.size());
+
+        List<RadioBrowserStationDto> paginatedStations = start < apiStations.size()
+            ? apiStations.subList(start, end)
+            : List.of();
+
+        // Map to response with favorite status (check by UUID since stations aren't in DB yet)
+        List<RadioStationResponse> responses = paginatedStations.stream()
+            .map(dto -> radioStationMapper.toResponse(
+                dto,
+                favoriteStationUuids.contains(dto.getStationUuid())
+            ))
+            .collect(Collectors.toList());
+
+        // Calculate pagination metadata
+        int totalElements = apiStations.size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        return PageResponse.<RadioStationResponse>builder()
+            .content(responses)
+            .page(page)
+            .size(size)
+            .totalElements(totalElements)
+            .totalPages(totalPages)
+            .first(page == 0)
+            .last(page >= totalPages - 1)
+            .build();
+    }
+
+    @Transactional(readOnly = true)
+    public RadioStationResponse getStationById(Long id, User user) {
+        if (id == null) {
+            throw new IllegalArgumentException("Station ID cannot be null");
+        }
+
+        RadioStation station = radioStationRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Station not found with id: " + id));
+
+        boolean isFavorite = favoriteRepository.existsByUserAndRadioStation(user, station);
+
+        return radioStationMapper.toResponse(station, isFavorite);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<RadioStationResponse> getSavedStations(int page, int size, User user) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<RadioStation> stationsPage = radioStationRepository.findAll(pageable);
 
         // Get user's favorite station IDs
         Set<Long> favoriteStationIds = favoriteRepository.findByUser(user, Pageable.unpaged())
@@ -67,8 +127,8 @@ public class RadioStationService {
 
         return PageResponse.<RadioStationResponse>builder()
             .content(responses)
-            .page(stationsPage.getNumber())
-            .size(stationsPage.getSize())
+            .page(page)
+            .size(size)
             .totalElements(stationsPage.getTotalElements())
             .totalPages(stationsPage.getTotalPages())
             .first(stationsPage.isFirst())
@@ -76,62 +136,43 @@ public class RadioStationService {
             .build();
     }
 
-    @Transactional(readOnly = true)
-    public RadioStationResponse getStationById(Long id, User user) {
-        RadioStation station = radioStationRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Station not found with id: " + id));
+    @Transactional
+    public void saveStations(List<String> stationUuids) {
+        for (String stationUuid : stationUuids) {
+            try {
+                // Fetch station from API by UUID
+                RadioBrowserStationDto apiStation = radioBrowserApiClient.getStationByUuid(stationUuid);
 
-        boolean isFavorite = favoriteRepository.existsByUserAndRadioStation(user, station);
-
-        return radioStationMapper.toResponse(station, isFavorite);
-    }
-
-    private void syncStationsFromApi(StationSearchRequest request) {
-        try {
-            List<cg.xis.eradio.infrastructure.client.dto.RadioBrowserStationDto> apiStations =
-                radioBrowserApiClient.searchStations(
-                    request.getName(),
-                    request.getCountry(),
-                    request.getLanguage(),
-                    request.getTags(),
-                    100 // Limit for API call
-                );
-
-            for (cg.xis.eradio.infrastructure.client.dto.RadioBrowserStationDto apiStation : apiStations) {
-                try {
-                    radioStationRepository.findByStationUuid(apiStation.getStationUuid())
-                        .ifPresentOrElse(
-                            existing -> {
-                                try {
-                                    // Update existing station
-                                    RadioStation updated = radioStationMapper.toEntity(apiStation);
-                                    if (updated != null) {
-                                        updated.setId(existing.getId());
-                                        updated.setCreatedAt(existing.getCreatedAt());
-                                        radioStationRepository.save(updated);
-                                    }
-                                } catch (Exception e) {
-                                    log.warn("Error updating station {}: {}", apiStation.getStationUuid(), e.getMessage());
-                                }
-                            },
-                            () -> {
-                                try {
-                                    // Save new station
-                                    RadioStation newStation = radioStationMapper.toEntity(apiStation);
-                                    if (newStation != null) {
-                                        radioStationRepository.save(newStation);
-                                    }
-                                } catch (Exception e) {
-                                    log.warn("Error saving new station {}: {}", apiStation.getStationUuid(), e.getMessage());
-                                }
-                            }
-                        );
-                } catch (Exception e) {
-                    log.warn("Error processing station {}: {}", apiStation.getStationUuid(), e.getMessage());
+                if (apiStation == null) {
+                    log.warn("Station with UUID {} not found in Radio Browser API", stationUuid);
+                    continue;
                 }
+
+                // Upsert: check if station exists, update or create
+                radioStationRepository.findByStationUuid(stationUuid)
+                    .ifPresentOrElse(
+                        existing -> {
+                            // Update existing station
+                            RadioStation updated = radioStationMapper.toEntity(apiStation);
+                            if (updated != null) {
+                                updated.setId(existing.getId());
+                                updated.setCreatedAt(existing.getCreatedAt());
+                                radioStationRepository.save(updated);
+                                log.debug("Updated station with UUID: {}", stationUuid);
+                            }
+                        },
+                        () -> {
+                            // Save new station
+                            RadioStation newStation = radioStationMapper.toEntity(apiStation);
+                            if (newStation != null) {
+                                radioStationRepository.save(newStation);
+                                log.debug("Saved new station with UUID: {}", stationUuid);
+                            }
+                        }
+                    );
+            } catch (Exception e) {
+                log.error("Error saving station with UUID {}: {}", stationUuid, e.getMessage(), e);
             }
-        } catch (Exception e) {
-            log.error("Error syncing stations from API", e);
         }
     }
 }

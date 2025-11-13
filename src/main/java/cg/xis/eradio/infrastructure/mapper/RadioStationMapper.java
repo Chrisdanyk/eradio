@@ -78,5 +78,36 @@ public class RadioStationMapper {
             .isFavorite(isFavorite)
             .build();
     }
+
+    /**
+     * Maps RadioBrowserStationDto directly to RadioStationResponse (for search results without DB save)
+     */
+    public RadioStationResponse toResponse(RadioBrowserStationDto dto, boolean isFavorite) {
+        if (dto == null) {
+            return null;
+        }
+
+        return RadioStationResponse.builder()
+            .id(null) // No ID since not saved in DB yet
+            .stationUuid(dto.getStationUuid())
+            .name(dto.getName())
+            .url(dto.getUrl())
+            .urlResolved(dto.getUrlResolved())
+            .homepage(dto.getHomepage())
+            .favicon(dto.getFavicon())
+            .tags(dto.getTags())
+            .country(dto.getCountry())
+            .countryCode(dto.getCountryCode())
+            .state(dto.getState())
+            .language(dto.getLanguage())
+            .languageCodes(dto.getLanguageCodes())
+            .votes(dto.getVotes())
+            .codec(dto.getCodec())
+            .bitrate(dto.getBitrate())
+            .hls(dto.getHls() != null && dto.getHls() == 1)
+            .lastCheckOk(dto.getLastCheckOk() != null && dto.getLastCheckOk() == 1)
+            .isFavorite(isFavorite)
+            .build();
+    }
 }
 

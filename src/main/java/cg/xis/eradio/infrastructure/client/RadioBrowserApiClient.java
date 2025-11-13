@@ -74,5 +74,23 @@ public class RadioBrowserApiClient {
             return List.of();
         }
     }
+
+    public RadioBrowserStationDto getStationByUuid(String stationUuid) {
+        try {
+            String url = "/json/stations/byuuid/" + stationUuid;
+            RadioBrowserStationDto[] stations = getRestClient().get()
+                .uri(url)
+                .retrieve()
+                .body(RadioBrowserStationDto[].class);
+
+            if (stations != null && stations.length > 0) {
+                return stations[0];
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("Error fetching station by UUID {} from Radio Browser API", stationUuid, e);
+            return null;
+        }
+    }
 }
 

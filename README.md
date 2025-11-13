@@ -174,7 +174,7 @@ docker-compose up -d
 
 Once the application is running, access the interactive API documentation:
 
-- **Swagger UI**: http://localhost:8080/swagger
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
 - **OpenAPI JSON**: http://localhost:8080/v3/api-docs
 
 ### API Endpoints

@@ -31,11 +31,14 @@ public class FavoriteService {
         if (stationId == null) {
             throw new IllegalArgumentException("Station ID cannot be null");
         }
-        RadioStation station = radioStationRepository.findById(stationId)
-            .orElseThrow(() -> new IllegalArgumentException("Station not found with id: " + stationId));
 
+        // Validate station exists in DB (must be saved first)
+        RadioStation station = radioStationRepository.findById(stationId)
+            .orElseThrow(() -> new IllegalArgumentException("Station not found with id: " + stationId + ". Please save the station first."));
+
+        // Upsert: if already exists, do nothing (idempotent)
         if (favoriteRepository.existsByUserAndRadioStation(user, station)) {
-            throw new IllegalArgumentException("Station is already in favorites");
+            return; // Already in favorites, no action needed
         }
 
         Favorite favorite = Favorite.builder()
