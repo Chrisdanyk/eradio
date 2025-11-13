@@ -1,0 +1,46 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+HELP.md
+*.md
+
+# IDE
+.idea
+.vscode
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings
+
+# Build artifacts
+target/
+.mvn/wrapper/maven-wrapper.jar
+build/
+dist/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test files
+src/test/
+
+# Maven wrapper (we use the one from the base image)
+mvnw
+mvnw.cmd
+
