@@ -1,19 +1,15 @@
 package cg.xis.eradio.dto.response;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AuthResponse {
-    private String token;
-    @Builder.Default
-    private String type = "Bearer";
-    private Long userId;
+public class UserProfileResponse {
+    private Long id;
     private String username;
     private String email;
+    private String fullName;
 }
