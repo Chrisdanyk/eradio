@@ -1,0 +1,64 @@
+spring:
+  application:
+    name: eradio
+  main:
+    allow-circular-references: true
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  datasource:
+    url: jdbc:h2:mem:eradio
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION}
+
+radio-browser:
+  api:
+    base-url: ${RADIO_BROWSER_API_URL}
+
+logging:
+  level:
+    org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer: ERROR
+
+server:
+  port: ${SERVER_PORT:8080}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger
+    try-it-out-enabled: true
+    persist-authorization: true
+    use-root-path: false
+
+---
+# Development Profile (default)
+spring:
+  config:
+    activate:
+      on-profile: dev
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
