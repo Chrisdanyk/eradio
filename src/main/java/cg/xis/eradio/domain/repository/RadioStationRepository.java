@@ -8,11 +8,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface RadioStationRepository extends JpaRepository<RadioStation, Long> {
     Optional<RadioStation> findByStationUuid(String stationUuid);
+
+    List<RadioStation> findByStationUuidIn(Collection<String> stationUuids);
 
     @Query("SELECT rs FROM RadioStation rs WHERE " +
            "(:name IS NULL OR :name = '' OR LOWER(rs.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +

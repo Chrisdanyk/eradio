@@ -8,11 +8,21 @@ import org.springframework.stereotype.Component;
 @Component
 public class RadioStationMapper {
 
-    public RadioStation toEntity(RadioBrowserStationDto dto) {
-        if (dto == null) {
-            return null;
-        }
+    /**
+     * Value object holding normalized/truncated string fields from
+     * RadioBrowserStationDto
+     */
+    private record NormalizedDtoFields(String tags, String url, String urlResolved) {
+    }
 
+    /**
+     * Normalizes and truncates string fields from RadioBrowserStationDto to ensure
+     * consistent field length limits across all mapping operations.
+     *
+     * @param dto the source DTO
+     * @return normalized fields with proper truncation applied
+     */
+    private NormalizedDtoFields normalizeDto(RadioBrowserStationDto dto) {
         // Truncate tags if too long (max 2000 characters)
         String tags = dto.getTags();
         if (tags != null && tags.length() > 2000) {
@@ -30,25 +40,35 @@ public class RadioStationMapper {
             urlResolved = urlResolved.substring(0, 8000);
         }
 
+        return new NormalizedDtoFields(tags, url, urlResolved);
+    }
+
+    public RadioStation toEntity(RadioBrowserStationDto dto) {
+        if (dto == null) {
+            return null;
+        }
+
+        NormalizedDtoFields normalized = normalizeDto(dto);
+
         return RadioStation.builder()
-            .stationUuid(dto.getStationUuid())
-            .name(dto.getName())
-            .url(url)
-            .urlResolved(urlResolved)
-            .homepage(dto.getHomepage())
-            .favicon(dto.getFavicon())
-            .tags(tags)
-            .country(dto.getCountry())
-            .countryCode(dto.getCountryCode())
-            .state(dto.getState())
-            .language(dto.getLanguage())
-            .languageCodes(dto.getLanguageCodes())
-            .votes(dto.getVotes())
-            .codec(dto.getCodec())
-            .bitrate(dto.getBitrate())
-            .hls(dto.getHls() != null && dto.getHls() == 1)
-            .lastCheckOk(dto.getLastCheckOk() != null && dto.getLastCheckOk() == 1)
-            .build();
+                .stationUuid(dto.getStationUuid())
+                .name(dto.getName())
+                .url(normalized.url())
+                .urlResolved(normalized.urlResolved())
+                .homepage(dto.getHomepage())
+                .favicon(dto.getFavicon())
+                .tags(normalized.tags())
+                .country(dto.getCountry())
+                .countryCode(dto.getCountryCode())
+                .state(dto.getState())
+                .language(dto.getLanguage())
+                .languageCodes(dto.getLanguageCodes())
+                .votes(dto.getVotes())
+                .codec(dto.getCodec())
+                .bitrate(dto.getBitrate())
+                .hls(dto.getHls() != null && dto.getHls() == 1)
+                .lastCheckOk(dto.getLastCheckOk() != null && dto.getLastCheckOk() == 1)
+                .build();
     }
 
     public RadioStationResponse toResponse(RadioStation station, boolean isFavorite) {
@@ -57,57 +77,59 @@ public class RadioStationMapper {
         }
 
         return RadioStationResponse.builder()
-            .id(station.getId())
-            .stationUuid(station.getStationUuid())
-            .name(station.getName())
-            .url(station.getUrl())
-            .urlResolved(station.getUrlResolved())
-            .homepage(station.getHomepage())
-            .favicon(station.getFavicon())
-            .tags(station.getTags())
-            .country(station.getCountry())
-            .countryCode(station.getCountryCode())
-            .state(station.getState())
-            .language(station.getLanguage())
-            .languageCodes(station.getLanguageCodes())
-            .votes(station.getVotes())
-            .codec(station.getCodec())
-            .bitrate(station.getBitrate())
-            .hls(station.getHls())
-            .lastCheckOk(station.getLastCheckOk())
-            .isFavorite(isFavorite)
-            .build();
+                .id(station.getId())
+                .stationUuid(station.getStationUuid())
+                .name(station.getName())
+                .url(station.getUrl())
+                .urlResolved(station.getUrlResolved())
+                .homepage(station.getHomepage())
+                .favicon(station.getFavicon())
+                .tags(station.getTags())
+                .country(station.getCountry())
+                .countryCode(station.getCountryCode())
+                .state(station.getState())
+                .language(station.getLanguage())
+                .languageCodes(station.getLanguageCodes())
+                .votes(station.getVotes())
+                .codec(station.getCodec())
+                .bitrate(station.getBitrate())
+                .hls(station.getHls())
+                .lastCheckOk(station.getLastCheckOk())
+                .isFavorite(isFavorite)
+                .build();
     }
 
     /**
-     * Maps RadioBrowserStationDto directly to RadioStationResponse (for search results without DB save)
+     * Maps RadioBrowserStationDto directly to RadioStationResponse (for search
+     * results without DB save)
      */
     public RadioStationResponse toResponse(RadioBrowserStationDto dto, boolean isFavorite) {
         if (dto == null) {
             return null;
         }
 
+        NormalizedDtoFields normalized = normalizeDto(dto);
+
         return RadioStationResponse.builder()
-            .id(null) // No ID since not saved in DB yet
-            .stationUuid(dto.getStationUuid())
-            .name(dto.getName())
-            .url(dto.getUrl())
-            .urlResolved(dto.getUrlResolved())
-            .homepage(dto.getHomepage())
-            .favicon(dto.getFavicon())
-            .tags(dto.getTags())
-            .country(dto.getCountry())
-            .countryCode(dto.getCountryCode())
-            .state(dto.getState())
-            .language(dto.getLanguage())
-            .languageCodes(dto.getLanguageCodes())
-            .votes(dto.getVotes())
-            .codec(dto.getCodec())
-            .bitrate(dto.getBitrate())
-            .hls(dto.getHls() != null && dto.getHls() == 1)
-            .lastCheckOk(dto.getLastCheckOk() != null && dto.getLastCheckOk() == 1)
-            .isFavorite(isFavorite)
-            .build();
+                .id(null) // No ID since not saved in DB yet
+                .stationUuid(dto.getStationUuid())
+                .name(dto.getName())
+                .url(normalized.url())
+                .urlResolved(normalized.urlResolved())
+                .homepage(dto.getHomepage())
+                .favicon(dto.getFavicon())
+                .tags(normalized.tags())
+                .country(dto.getCountry())
+                .countryCode(dto.getCountryCode())
+                .state(dto.getState())
+                .language(dto.getLanguage())
+                .languageCodes(dto.getLanguageCodes())
+                .votes(dto.getVotes())
+                .codec(dto.getCodec())
+                .bitrate(dto.getBitrate())
+                .hls(dto.getHls() != null && dto.getHls() == 1)
+                .lastCheckOk(dto.getLastCheckOk() != null && dto.getLastCheckOk() == 1)
+                .isFavorite(isFavorite)
+                .build();
     }
 }
-

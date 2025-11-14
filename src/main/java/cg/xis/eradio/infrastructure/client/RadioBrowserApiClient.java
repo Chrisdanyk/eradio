@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -34,7 +35,8 @@ public class RadioBrowserApiClient {
     public List<RadioBrowserStationDto> searchStations(String country, Integer limit) {
         try {
             String encodedCountry = country != null ? URLEncoder.encode(country, StandardCharsets.UTF_8) : "";
-            String url = "/json/stations/search?country=" + encodedCountry + "&limit=" + limit;
+            String url = "/json/stations/search?country=" + encodedCountry +
+                    (limit != null ? "&limit=" + limit : "");
             RadioBrowserStationDto[] stations = getRestClient().get()
                     .uri(url)
                     .retrieve()
@@ -58,22 +60,25 @@ public class RadioBrowserApiClient {
     public List<RadioBrowserStationDto> searchStations(String name, String country, String language, String tags,
             Integer limit) {
         try {
-            StringBuilder urlBuilder = new StringBuilder("/json/stations/search?limit=" + limit);
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath("/json/stations/search");
 
             if (name != null && !name.isBlank()) {
-                urlBuilder.append("&name=").append(URLEncoder.encode(name, StandardCharsets.UTF_8));
+                uriBuilder.queryParam("name", name);
             }
             if (country != null && !country.isBlank()) {
-                urlBuilder.append("&country=").append(URLEncoder.encode(country, StandardCharsets.UTF_8));
+                uriBuilder.queryParam("country", country);
             }
             if (language != null && !language.isBlank()) {
-                urlBuilder.append("&language=").append(URLEncoder.encode(language, StandardCharsets.UTF_8));
+                uriBuilder.queryParam("language", language);
             }
             if (tags != null && !tags.isBlank()) {
-                urlBuilder.append("&tags=").append(URLEncoder.encode(tags, StandardCharsets.UTF_8));
+                uriBuilder.queryParam("tags", tags);
+            }
+            if (limit != null) {
+                uriBuilder.queryParam("limit", limit);
             }
 
-            String uri = urlBuilder.toString();
+            String uri = uriBuilder.toUriString();
             RadioBrowserStationDto[] stations = getRestClient().get()
                     .uri(uri)
                     .retrieve()

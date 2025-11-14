@@ -42,9 +42,14 @@ public class GlobalExceptionHandler {
         for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
             String propertyPath = violation.getPropertyPath().toString();
             String message = violation.getMessage();
-            String fieldName = propertyPath.contains(".")
-                    ? propertyPath.substring(propertyPath.lastIndexOf('.') + 1)
-                    : propertyPath;
+            String fieldName;
+            if (propertyPath == null || propertyPath.isBlank()) {
+                fieldName = "field";
+            } else {
+                fieldName = propertyPath.contains(".")
+                        ? propertyPath.substring(propertyPath.lastIndexOf('.') + 1)
+                        : propertyPath;
+            }
             errors.put(fieldName, message);
         }
         return ResponseEntity.badRequest().body(errors);
