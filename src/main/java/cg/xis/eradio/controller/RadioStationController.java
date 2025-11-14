@@ -11,15 +11,19 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/stations")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "Radio Stations", description = "Endpoints for searching and retrieving radio stations")
 @SecurityRequirement(name = "Bearer Authentication")
 public class RadioStationController {
@@ -33,8 +37,8 @@ public class RadioStationController {
             @RequestParam(required = false) String country,
             @RequestParam(required = false) String language,
             @RequestParam(required = false) String tags,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page index must be zero or greater") int page,
+            @RequestParam(defaultValue = "20") @Positive(message = "Page size must be greater than zero") int size,
             @AuthenticationPrincipal User user) {
 
         StationSearchRequest request = new StationSearchRequest();
@@ -61,8 +65,8 @@ public class RadioStationController {
     @Operation(summary = "Get saved stations", description = "Retrieve a paginated list of all saved radio stations. Users can then select stations from this list to add to their favorites.")
     @GetMapping("/saved")
     public ResponseEntity<PageResponse<RadioStationResponse>> getSavedStations(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page index must be zero or greater") int page,
+            @RequestParam(defaultValue = "20") @Positive(message = "Page size must be greater than zero") int size,
             @AuthenticationPrincipal User user) {
         PageResponse<RadioStationResponse> response = radioStationService.getSavedStations(page, size, user);
         return ResponseEntity.ok(response);
@@ -79,4 +83,3 @@ public class RadioStationController {
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }
-

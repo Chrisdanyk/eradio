@@ -64,8 +64,8 @@ springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
-    enabled: ${SWAGGER_ENABLED:true}
+    enabled: ${SWAGGER_ENABLED:false}
     path: /swagger
-    try-it-out-enabled: true
+    try-it-out-enabled: false
     persist-authorization: true
     use-root-path: false
