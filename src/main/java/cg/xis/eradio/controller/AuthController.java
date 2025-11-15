@@ -16,15 +16,11 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@RequiredArgsConstructor // This generates the constructor for final fields
+@RequiredArgsConstructor // Generates constructor for final fields
 @Tag(name = "Authentication", description = "Authentication endpoints for user registration and login")
 public class AuthController {
 
-    private final UserService userService; // Must be final for @RequiredArgsConstructor
-
-    public AuthController(UserService userService) {
-        this.userService = userService;
-    }
+    private final UserService userService;
 
     @Operation(summary = "Register a new user", description = "Creates a new user account and returns a JWT token")
     @ApiResponse(responseCode = "201", description = "User successfully registered")
@@ -54,7 +50,8 @@ public class AuthController {
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
-                user.getFullName()
+                user.getFullName(),
+                user.getRole().name()
         );
         return ResponseEntity.ok(response);
     }

@@ -25,9 +25,10 @@ public class UserService implements UserDetailsService {
     private final AuthenticationManager authenticationManager;
 
     public UserService(UserRepository userRepository,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService,
-            @Lazy AuthenticationManager authenticationManager) {
+                       PasswordEncoder passwordEncoder,
+                       JwtService jwtService,
+                       @Lazy AuthenticationManager authenticationManager) {
+
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -37,11 +38,13 @@ public class UserService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+                .orElseThrow(() ->
+                        new UsernameNotFoundException("User not found: " + username));
     }
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
+
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("Username already exists");
         }
@@ -50,8 +53,10 @@ public class UserService implements UserDetailsService {
             throw new IllegalArgumentException("Email already exists");
         }
 
+        // 🔥 IMPORTANT: Add fullName here
         User user = User.builder()
                 .username(request.getUsername())
+                .fullName(request.getFullName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(User.Role.USER)
@@ -66,35 +71,41 @@ public class UserService implements UserDetailsService {
                 .userId(savedUser.getId())
                 .username(savedUser.getUsername())
                 .email(savedUser.getEmail())
+                .fullName(savedUser.getFullName())
                 .build();
     }
 
     public AuthResponse login(String username, String password) {
+
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, password));
+                new UsernamePasswordAuthenticationToken(username, password)
+        );
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+                .orElseThrow(() ->
+                        new UsernameNotFoundException("User not found: " + username));
 
         String token = jwtService.generateToken(user);
-        Long userId = user.getId();
 
         return AuthResponse.builder()
                 .token(token)
-                .userId(userId)
+                .userId(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
+                .fullName(user.getFullName())
                 .build();
     }
 
     public User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("User not authenticated");
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new UsernameNotFoundException("User not authenticated");
         }
 
-        String username = authentication.getName();
+        String username = auth.getName();
+
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
 }

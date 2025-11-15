@@ -31,7 +31,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/v3/api-docs/**",
             "/swagger-resources/**",
             "/webjars/**",
-            "/api/auth/**",
+            "/api/auth/register",
+            "/api/auth/login",
             "/actuator/health");
 
     private final JwtService jwtService;
