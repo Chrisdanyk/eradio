@@ -31,17 +31,21 @@ public class FavoriteService {
         if (stationId == null) {
             throw new IllegalArgumentException("Station ID cannot be null");
         }
-        RadioStation station = radioStationRepository.findById(stationId)
-            .orElseThrow(() -> new IllegalArgumentException("Station not found with id: " + stationId));
 
+        // Validate station exists in DB (must be saved first)
+        RadioStation station = radioStationRepository.findById(stationId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Station not found with id: " + stationId + ". Please save the station first."));
+
+        // Upsert: if already exists, do nothing (idempotent)
         if (favoriteRepository.existsByUserAndRadioStation(user, station)) {
-            throw new IllegalArgumentException("Station is already in favorites");
+            return; // Already in favorites, no action needed
         }
 
         Favorite favorite = Favorite.builder()
-            .user(user)
-            .radioStation(station)
-            .build();
+                .user(user)
+                .radioStation(station)
+                .build();
 
         favoriteRepository.save(favorite);
     }
@@ -52,7 +56,8 @@ public class FavoriteService {
             throw new IllegalArgumentException("Station ID cannot be null");
         }
         RadioStation station = radioStationRepository.findById(stationId)
-            .orElseThrow(() -> new IllegalArgumentException("Station not found with id: " + stationId));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Station not found with id: " + stationId + ". Please save the station first."));
 
         favoriteRepository.deleteByUserAndRadioStation(user, station);
     }
@@ -63,22 +68,21 @@ public class FavoriteService {
         Page<Favorite> favoritesPage = favoriteRepository.findByUser(user, pageable);
 
         List<RadioStationResponse> responses = favoritesPage.getContent().stream()
-            .map(favorite -> {
-                RadioStation station = favorite.getRadioStation();
-                return station != null ? radioStationMapper.toResponse(station, true) : null;
-            })
-            .filter(response -> response != null)
-            .collect(Collectors.toList());
+                .map(favorite -> {
+                    RadioStation station = favorite.getRadioStation();
+                    return station != null ? radioStationMapper.toResponse(station, true) : null;
+                })
+                .filter(response -> response != null)
+                .collect(Collectors.toList());
 
         return PageResponse.<RadioStationResponse>builder()
-            .content(responses)
-            .page(favoritesPage.getNumber())
-            .size(favoritesPage.getSize())
-            .totalElements(favoritesPage.getTotalElements())
-            .totalPages(favoritesPage.getTotalPages())
-            .first(favoritesPage.isFirst())
-            .last(favoritesPage.isLast())
-            .build();
+                .content(responses)
+                .page(favoritesPage.getNumber())
+                .size(favoritesPage.getSize())
+                .totalElements(favoritesPage.getTotalElements())
+                .totalPages(favoritesPage.getTotalPages())
+                .first(favoritesPage.isFirst())
+                .last(favoritesPage.isLast())
+                .build();
     }
 }
-
