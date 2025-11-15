@@ -47,10 +47,8 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     enabled: true
-    path: /swagger
     try-it-out-enabled: true
     persist-authorization: true
-    use-root-path: false
 
 ---
 # Development Profile (default)
