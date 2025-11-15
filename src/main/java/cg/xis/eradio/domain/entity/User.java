@@ -48,13 +48,26 @@ public class User implements UserDetails {
 
     @Override
     public String getPassword() {
-        return "";
+        return password;
     }
 
     @Override
     public String getUsername() {
-        return "";
+        return username;
     }
+
+    public Long getId(){
+        return id;
+    }
+
+    public String getEmail(){
+        return email;
+    }
+    public String getFullName(){
+        return fullName;
+    }
+
+
 
     @Override
     public boolean isAccountNonExpired() {
@@ -75,6 +88,7 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
 
     public enum Role {
         USER, ADMIN
