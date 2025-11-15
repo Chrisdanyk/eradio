@@ -106,9 +106,11 @@ public class RadioBrowserApiClient {
         }
 
         try {
-            String url = "/json/stations/byuuid/" + stationUuid;
+            String uri = UriComponentsBuilder.fromPath("/json/stations/byuuid/{uuid}")
+                    .buildAndExpand(stationUuid)
+                    .toUriString();
             RadioBrowserStationDto[] stations = getRestClient().get()
-                    .uri(url)
+                    .uri(uri)
                     .retrieve()
                     .onStatus(HttpStatusCode::isError, (request, response) -> {
                         log.error("Error response from Radio Browser API for UUID {}: {} {}",

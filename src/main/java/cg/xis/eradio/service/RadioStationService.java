@@ -1,5 +1,6 @@
 package cg.xis.eradio.service;
 
+import cg.xis.eradio.domain.entity.Favorite;
 import cg.xis.eradio.domain.entity.RadioStation;
 import cg.xis.eradio.domain.entity.User;
 import cg.xis.eradio.domain.repository.FavoriteRepository;
@@ -16,9 +17,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -27,10 +33,87 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RadioStationService {
 
+    private static final int MAX_BATCH_SIZE = 500;
+
     private final RadioStationRepository radioStationRepository;
     private final FavoriteRepository favoriteRepository;
     private final RadioBrowserApiClient radioBrowserApiClient;
     private final RadioStationMapper radioStationMapper;
+
+    /**
+     * Finds radio stations by their UUIDs with automatic batching to prevent large
+     * IN queries.
+     * <p>
+     * This method splits large collections into batches of at most MAX_BATCH_SIZE
+     * and aggregates
+     * the results. This prevents database performance issues from very large IN
+     * queries.
+     * </p>
+     *
+     * @param stationUuids collection of station UUIDs to search for
+     * @return list of matching RadioStation entities
+     * @throws IllegalArgumentException if stationUuids is null
+     */
+    List<RadioStation> findByStationUuidInBatched(Collection<String> stationUuids) {
+        if (stationUuids == null) {
+            throw new IllegalArgumentException("Station UUIDs collection cannot be null");
+        }
+
+        if (stationUuids.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> uuidList = new ArrayList<>(stationUuids);
+        List<RadioStation> results = new ArrayList<>();
+
+        // Split into batches and process each batch
+        for (int i = 0; i < uuidList.size(); i += MAX_BATCH_SIZE) {
+            int end = Math.min(i + MAX_BATCH_SIZE, uuidList.size());
+            List<String> batch = uuidList.subList(i, end);
+            List<RadioStation> batchResults = radioStationRepository.findByStationUuidIn(batch);
+            results.addAll(batchResults);
+        }
+
+        return results;
+    }
+
+    /**
+     * Resolves which station UUIDs from the given set are favorites for the user.
+     * <p>
+     * This method fetches RadioStation entities by UUID, maps them to IDs, queries
+     * favorites, and returns the UUIDs of stations that are favorited by the user.
+     * </p>
+     * <p>
+     * Note: This method filters out favorites with null radioStation references.
+     * Consider adding a database constraint or cleanup migration to prevent
+     * favorites with null radioStation references for data integrity.
+     * </p>
+     *
+     * @param stationUuids set of station UUIDs to check
+     * @param user         the user to check favorites for
+     * @return set of station UUIDs that are favorites for the user
+     */
+    private Set<String> resolveFavoriteUuids(Set<String> stationUuids, User user) {
+        if (stationUuids == null || stationUuids.isEmpty()) {
+            return Set.of();
+        }
+
+        List<RadioStation> stations = findByStationUuidInBatched(stationUuids);
+        if (stations.isEmpty()) {
+            return Set.of();
+        }
+
+        Set<Long> ids = stations.stream()
+                .map(RadioStation::getId)
+                .collect(Collectors.toSet());
+
+        return favoriteRepository.findByUserAndRadioStationIdIn(user, ids)
+                .stream()
+                .map(Favorite::getRadioStation)
+                .filter(Objects::nonNull)
+                .map(RadioStation::getStationUuid)
+                .collect(Collectors.toSet());
+    }
 
     /**
      * Searches for radio stations using the RadioBrowser API.
@@ -68,6 +151,10 @@ public class RadioStationService {
                 request.getTags(),
                 apiLimit);
 
+        if (apiStations == null) {
+            apiStations = List.of();
+        }
+
         // Calculate pagination bounds
         int start = page * size;
         int end = Math.min(start + size, apiStations.size());
@@ -77,33 +164,11 @@ public class RadioStationService {
                 : List.of();
 
         // Fetch favorites only for the current page to improve performance
-        Set<String> favoriteStationUuids;
-        if (paginatedStations.isEmpty()) {
-            favoriteStationUuids = Set.of();
-        } else {
-            Set<String> currentPageUuids = paginatedStations.stream()
-                    .map(RadioBrowserStationDto::getStationUuid)
-                    .collect(Collectors.toSet());
+        Set<String> currentPageUuids = paginatedStations.stream()
+                .map(RadioBrowserStationDto::getStationUuid)
+                .collect(Collectors.toSet());
 
-            List<RadioStation> favoriteStations = radioStationRepository.findByStationUuidIn(currentPageUuids);
-            if (favoriteStations.isEmpty()) {
-                favoriteStationUuids = Set.of();
-            } else {
-                Set<Long> favoriteStationIds = favoriteStations.stream()
-                        .map(RadioStation::getId)
-                        .collect(Collectors.toSet());
-
-                Set<String> uuids = favoriteRepository.findByUserAndRadioStationIdIn(user, favoriteStationIds)
-                        .stream()
-                        .map(fav -> {
-                            RadioStation station = fav.getRadioStation();
-                            return station != null ? station.getStationUuid() : null;
-                        })
-                        .filter(uuid -> uuid != null)
-                        .collect(Collectors.toSet());
-                favoriteStationUuids = uuids;
-            }
-        }
+        Set<String> favoriteStationUuids = resolveFavoriteUuids(currentPageUuids, user);
         final Set<String> finalFavoriteStationUuids = favoriteStationUuids;
 
         List<RadioStationResponse> responses = paginatedStations.stream()
@@ -154,23 +219,16 @@ public class RadioStationService {
         Pageable pageable = PageRequest.of(page, size);
         Page<RadioStation> stationsPage = radioStationRepository.findAll(pageable);
 
-        Set<Long> currentPageStationIds = stationsPage.getContent().stream()
-                .map(RadioStation::getId)
+        Set<String> currentPageStationUuids = stationsPage.getContent().stream()
+                .map(RadioStation::getStationUuid)
                 .collect(Collectors.toSet());
 
-        Set<Long> favoriteStationIds = favoriteRepository.findByUserAndRadioStationIdIn(user, currentPageStationIds)
-                .stream()
-                .map(fav -> {
-                    RadioStation station = fav.getRadioStation();
-                    return station != null ? station.getId() : null;
-                })
-                .filter(id -> id != null)
-                .collect(Collectors.toSet());
+        Set<String> favoriteStationUuids = resolveFavoriteUuids(currentPageStationUuids, user);
 
         List<RadioStationResponse> responses = stationsPage.getContent().stream()
                 .map(station -> radioStationMapper.toResponse(
                         station,
-                        favoriteStationIds.contains(station.getId())))
+                        favoriteStationUuids.contains(station.getStationUuid())))
                 .collect(Collectors.toList());
 
         return PageResponse.<RadioStationResponse>builder()
@@ -187,31 +245,63 @@ public class RadioStationService {
     @Transactional
     public void saveStations(List<String> stationUuids) {
         for (String stationUuid : stationUuids) {
-            RadioBrowserStationDto apiStation = radioBrowserApiClient.getStationByUuid(stationUuid);
-
-            if (apiStation == null) {
-                log.warn("Station with UUID {} not found in Radio Browser API", stationUuid);
-                continue;
+            try {
+                saveSingleStation(stationUuid);
+            } catch (Exception e) {
+                log.error("Failed to save station with UUID: {}", stationUuid, e);
+                // Exception is logged but not re-thrown to allow batch to continue
+                // Each station's transaction has already rolled back independently
             }
-
-            radioStationRepository.findByStationUuid(stationUuid)
-                    .ifPresentOrElse(
-                            existing -> {
-                                RadioStation updated = radioStationMapper.toEntity(apiStation);
-                                if (updated != null) {
-                                    updated.setId(existing.getId());
-                                    updated.setCreatedAt(existing.getCreatedAt());
-                                    radioStationRepository.save(updated);
-                                    log.debug("Updated station with UUID: {}", stationUuid);
-                                }
-                            },
-                            () -> {
-                                RadioStation newStation = radioStationMapper.toEntity(apiStation);
-                                if (newStation != null) {
-                                    radioStationRepository.save(newStation);
-                                    log.debug("Saved new station with UUID: {}", stationUuid);
-                                }
-                            });
         }
+    }
+
+    /**
+     * Saves a single radio station by looking it up from the RadioBrowser API,
+     * converting it via the mapper, and either updating an existing station or
+     * inserting a new one.
+     * <p>
+     * This method runs in its own transaction (REQUIRES_NEW) so that failures
+     * for one station do not affect other stations in a batch operation.
+     * </p>
+     *
+     * @param stationUuid the UUID of the station to save
+     * @throws RuntimeException if the station cannot be found in the API, mapper
+     *                          conversion fails, or repository operations fail
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    private void saveSingleStation(String stationUuid) {
+        RadioBrowserStationDto apiStation = radioBrowserApiClient.getStationByUuid(stationUuid);
+
+        if (apiStation == null) {
+            log.error("Station with UUID {} not found in Radio Browser API", stationUuid);
+            throw new IllegalArgumentException("Station with UUID " + stationUuid + " not found in Radio Browser API");
+        }
+
+        radioStationRepository.findByStationUuid(stationUuid)
+                .ifPresentOrElse(
+                        existing -> {
+                            RadioStation updated = radioStationMapper.toEntity(apiStation);
+                            if (updated != null) {
+                                updated.setId(existing.getId());
+                                updated.setCreatedAt(existing.getCreatedAt());
+                                radioStationRepository.save(updated);
+                                log.debug("Updated station with UUID: {}", stationUuid);
+                            } else {
+                                log.error("Mapper returned null for station with UUID: {}", stationUuid);
+                                throw new IllegalStateException(
+                                        "Mapper returned null for station with UUID: " + stationUuid);
+                            }
+                        },
+                        () -> {
+                            RadioStation newStation = radioStationMapper.toEntity(apiStation);
+                            if (newStation != null) {
+                                radioStationRepository.save(newStation);
+                                log.debug("Saved new station with UUID: {}", stationUuid);
+                            } else {
+                                log.error("Mapper returned null for station with UUID: {}", stationUuid);
+                                throw new IllegalStateException(
+                                        "Mapper returned null for station with UUID: " + stationUuid);
+                            }
+                        });
     }
 }
