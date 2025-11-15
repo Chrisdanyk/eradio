@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    open-in-view: false
+
+  h2:
+    console:
+      enabled: false
+
+jwt:
+  secret: test-secret-key-for-testing-purposes-must-be-at-least-32-characters-long
+  expiration: 86400000
+
+radio-browser:
+  api:
+    base-url: https://de1.api.radio-browser.info
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    cg.xis.eradio: DEBUG
+
