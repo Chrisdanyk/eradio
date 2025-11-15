@@ -49,13 +49,10 @@ class AuthControllerProfileUnitTest {
     @Test
     @DisplayName("getProfile - Should return user profile successfully")
     void getProfile_WithValidUser_ShouldReturnUserProfile() {
-        // Given
         when(userService.getCurrentUser()).thenReturn(testUser);
 
-        // When
         ResponseEntity<UserProfileResponse> response = authController.getProfile();
 
-        // Then
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -73,7 +70,6 @@ class AuthControllerProfileUnitTest {
     @Test
     @DisplayName("getProfile - Should return profile for ADMIN user")
     void getProfile_WithAdminUser_ShouldReturnAdminProfile() {
-        // Given
         User adminUser = User.builder()
                 .id(2L)
                 .username("admin")
@@ -85,10 +81,8 @@ class AuthControllerProfileUnitTest {
 
         when(userService.getCurrentUser()).thenReturn(adminUser);
 
-        // When
         ResponseEntity<UserProfileResponse> response = authController.getProfile();
 
-        // Then
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -106,11 +100,9 @@ class AuthControllerProfileUnitTest {
     @Test
     @DisplayName("getProfile - Should throw exception when user is not authenticated")
     void getProfile_WhenUserNotAuthenticated_ShouldThrowException() {
-        // Given
         when(userService.getCurrentUser())
                 .thenThrow(new UsernameNotFoundException("User not authenticated"));
 
-        // When & Then
         assertThrows(UsernameNotFoundException.class, () -> authController.getProfile());
         verify(userService, times(1)).getCurrentUser();
     }
@@ -118,11 +110,9 @@ class AuthControllerProfileUnitTest {
     @Test
     @DisplayName("getProfile - Should throw exception when user not found")
     void getProfile_WhenUserNotFound_ShouldThrowException() {
-        // Given
         when(userService.getCurrentUser())
                 .thenThrow(new UsernameNotFoundException("User not found: testuser"));
 
-        // When & Then
         assertThrows(UsernameNotFoundException.class, () -> authController.getProfile());
         verify(userService, times(1)).getCurrentUser();
     }
@@ -130,7 +120,6 @@ class AuthControllerProfileUnitTest {
     @Test
     @DisplayName("getProfile - Should map all user fields correctly")
     void getProfile_ShouldMapAllFieldsCorrectly() {
-        // Given
         User userWithAllFields = User.builder()
                 .id(100L)
                 .username("john_doe")
@@ -142,10 +131,8 @@ class AuthControllerProfileUnitTest {
 
         when(userService.getCurrentUser()).thenReturn(userWithAllFields);
 
-        // When
         ResponseEntity<UserProfileResponse> response = authController.getProfile();
 
-        // Then
         assertNotNull(response.getBody());
         UserProfileResponse profile = response.getBody();
 
@@ -161,13 +148,10 @@ class AuthControllerProfileUnitTest {
     @Test
     @DisplayName("getProfile - Should return 200 OK status")
     void getProfile_ShouldReturnOkStatus() {
-        // Given
         when(userService.getCurrentUser()).thenReturn(testUser);
 
-        // When
         ResponseEntity<UserProfileResponse> response = authController.getProfile();
 
-        // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
     }

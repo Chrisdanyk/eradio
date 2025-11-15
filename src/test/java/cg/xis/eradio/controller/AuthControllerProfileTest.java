@@ -46,10 +46,8 @@ class AuthControllerProfileTest {
 
     @BeforeEach
     void setUp() {
-        // Clean up before each test
         userRepository.deleteAll();
 
-        // Create and save a test user in the database
         testUser = User.builder()
                 .username("testuser")
                 .email("test@example.com")
@@ -60,14 +58,12 @@ class AuthControllerProfileTest {
 
         testUser = userRepository.save(testUser);
 
-        // Generate a valid JWT token for the test user
         validToken = jwtService.generateToken(testUser);
     }
 
     @Test
     @DisplayName("GET /api/auth/profile - Should return user profile with valid token")
     void getProfile_WithValidToken_ShouldReturnUserProfile() throws Exception {
-        // When & Then
         mockMvc.perform(get("/api/auth/profile")
                         .header("Authorization", "Bearer " + validToken)
                         .contentType(MediaType.APPLICATION_JSON))
@@ -84,7 +80,6 @@ class AuthControllerProfileTest {
     @Test
     @DisplayName("GET /api/auth/profile - Should return 403 when token is missing")
     void getProfile_WithoutToken_ShouldReturnForbidden() throws Exception {
-        // When & Then - Spring Security returns 403 Forbidden when no authentication
         mockMvc.perform(get("/api/auth/profile")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -94,7 +89,6 @@ class AuthControllerProfileTest {
     @Test
     @DisplayName("GET /api/auth/profile - Should return 403 with invalid token")
     void getProfile_WithInvalidToken_ShouldReturnForbidden() throws Exception {
-        // When & Then
         mockMvc.perform(get("/api/auth/profile")
                         .header("Authorization", "Bearer invalid.token.here")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -105,7 +99,6 @@ class AuthControllerProfileTest {
     @Test
     @DisplayName("GET /api/auth/profile - Should return 403 with malformed token")
     void getProfile_WithMalformedToken_ShouldReturnForbidden() throws Exception {
-        // When & Then
         mockMvc.perform(get("/api/auth/profile")
                         .header("Authorization", "Bearer not.a.valid.jwt.token.format")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -116,7 +109,6 @@ class AuthControllerProfileTest {
     @Test
     @DisplayName("GET /api/auth/profile - Should return 403 with token without Bearer prefix")
     void getProfile_WithTokenWithoutBearer_ShouldReturnForbidden() throws Exception {
-        // When & Then
         mockMvc.perform(get("/api/auth/profile")
                         .header("Authorization", validToken)
                         .contentType(MediaType.APPLICATION_JSON))
@@ -127,7 +119,6 @@ class AuthControllerProfileTest {
     @Test
     @DisplayName("GET /api/auth/profile - Should return 403 with empty token")
     void getProfile_WithEmptyToken_ShouldReturnForbidden() throws Exception {
-        // When & Then
         mockMvc.perform(get("/api/auth/profile")
                         .header("Authorization", "Bearer ")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -138,7 +129,6 @@ class AuthControllerProfileTest {
     @Test
     @DisplayName("GET /api/auth/profile - Should return user profile for ADMIN role")
     void getProfile_WithAdminUser_ShouldReturnAdminProfile() throws Exception {
-        // Given
         User adminUser = User.builder()
                 .username("admin")
                 .email("admin@example.com")
@@ -150,7 +140,6 @@ class AuthControllerProfileTest {
         adminUser = userRepository.save(adminUser);
         String adminToken = jwtService.generateToken(adminUser);
 
-        // When & Then
         mockMvc.perform(get("/api/auth/profile")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON))
@@ -166,10 +155,8 @@ class AuthControllerProfileTest {
     @Test
     @DisplayName("GET /api/auth/profile - Should handle deleted user scenario")
     void getProfile_WhenUserDeleted_ShouldReturnForbidden() throws Exception {
-        // Given - Delete the user after generating token
         userRepository.delete(testUser);
 
-        // When & Then - Token is valid but user no longer exists, returns 403
         mockMvc.perform(get("/api/auth/profile")
                         .header("Authorization", "Bearer " + validToken)
                         .contentType(MediaType.APPLICATION_JSON))
@@ -180,7 +167,6 @@ class AuthControllerProfileTest {
     @Test
     @DisplayName("GET /api/auth/profile - Should return correct response structure")
     void getProfile_ShouldReturnCorrectResponseStructure() throws Exception {
-        // When & Then
         mockMvc.perform(get("/api/auth/profile")
                         .header("Authorization", "Bearer " + validToken)
                         .contentType(MediaType.APPLICATION_JSON))
@@ -197,10 +183,8 @@ class AuthControllerProfileTest {
     @Test
     @DisplayName("GET /api/auth/profile - Should return 403 with invalid token signature")
     void getProfile_WithInvalidTokenSignature_ShouldReturnForbidden() throws Exception {
-        // Note: This test uses a token with invalid signature (simulating tampered token)
         String invalidToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImlhdCI6MTYxNjIzOTAyMiwiZXhwIjo5OTk5OTk5OTk5fQ.invalid";
 
-        // When & Then
         mockMvc.perform(get("/api/auth/profile")
                         .header("Authorization", "Bearer " + invalidToken)
                         .contentType(MediaType.APPLICATION_JSON))
