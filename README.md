@@ -174,7 +174,7 @@ docker-compose up -d
 
 Once the application is running, access the interactive API documentation:
 
-- **Swagger UI**: http://localhost:8080/swagger
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
 - **OpenAPI JSON**: http://localhost:8080/v3/api-docs
 
 ### API Endpoints
@@ -254,16 +254,16 @@ backend/
 
 ## 📝 Environment Variables
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `SPRING_PROFILES_ACTIVE` | Spring profile (dev/prod) | `dev` | No |
-| `SERVER_PORT` | Application port | `8080` | No |
-| `JWT_SECRET` | Secret key for JWT signing | - | Yes |
-| `JWT_EXPIRATION` | JWT expiration time (ms) | - | Yes |
-| `DB_URL` | Database connection URL | - | Yes (prod) |
-| `DB_USERNAME` | Database username | - | Yes (prod) |
-| `DB_PASSWORD` | Database password | - | Yes (prod) |
-| `RADIO_BROWSER_API_URL` | Radio Browser API base URL | - | Yes |
+| Variable                 | Description                | Default | Required   |
+| ------------------------ | -------------------------- | ------- | ---------- |
+| `SPRING_PROFILES_ACTIVE` | Spring profile (dev/prod)  | `dev`   | No         |
+| `SERVER_PORT`            | Application port           | `8080`  | No         |
+| `JWT_SECRET`             | Secret key for JWT signing | -       | Yes        |
+| `JWT_EXPIRATION`         | JWT expiration time (ms)   | -       | Yes        |
+| `DB_URL`                 | Database connection URL    | -       | Yes (prod) |
+| `DB_USERNAME`            | Database username          | -       | Yes (prod) |
+| `DB_PASSWORD`            | Database password          | -       | Yes (prod) |
+| `RADIO_BROWSER_API_URL`  | Radio Browser API base URL | -       | Yes        |
 
 ## 🐛 Troubleshooting
 
@@ -312,5 +312,5 @@ This project is licensed under the MIT License.
 
 ---
 
-For more information, visit the [API Documentation](http://localhost:8080/swagger) when the application is running.
+For more information, visit the [API Documentation](http://localhost:8080/swagger-ui.html) when the application is running.
 

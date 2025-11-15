@@ -13,33 +13,45 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final AntPathMatcher pathMatcher = new AntPathMatcher();
+    private static final List<String> EXCLUDED_PATHS = List.of(
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/swagger",
+            "/v3/api-docs/**",
+            "/swagger-resources/**",
+            "/webjars/**",
+            "/api/auth/**",
+            "/actuator/health");
+
     private final JwtService jwtService;
     private final UserService userService;
+
+    @Override
+    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
+        String requestPath = request.getRequestURI();
+        if (requestPath == null) {
+            return false;
+        }
+        return EXCLUDED_PATHS.stream()
+                .anyMatch(pattern -> pathMatcher.match(pattern, requestPath));
+    }
 
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
-
-        String requestPath = request.getRequestURI();
-
-        // Skip JWT filter for Swagger/OpenAPI endpoints
-        if (requestPath.startsWith("/swagger-ui") ||
-            requestPath.startsWith("/v3/api-docs") ||
-            requestPath.startsWith("/swagger-ui.html") ||
-            requestPath.equals("/swagger-ui/index.html")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
 
         final String authHeader = request.getHeader("Authorization");
 
@@ -57,10 +69,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 if (jwtService.validateToken(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                    );
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
@@ -72,4 +83,3 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
-
