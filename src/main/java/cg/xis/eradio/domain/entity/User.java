@@ -56,19 +56,6 @@ public class User implements UserDetails {
         return username;
     }
 
-    public Long getId(){
-        return id;
-    }
-
-    public String getEmail(){
-        return email;
-    }
-    public String getFullName(){
-        return fullName;
-    }
-
-
-
     @Override
     public boolean isAccountNonExpired() {
         return true;
