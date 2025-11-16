@@ -53,7 +53,6 @@ public class UserService implements UserDetailsService {
             throw new IllegalArgumentException("Email already exists");
         }
 
-        // 🔥 IMPORTANT: Add fullName here
         User user = User.builder()
                 .username(request.getUsername())
                 .fullName(request.getFullName())
