@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,7 +38,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = userService.login(request.getUsername(), request.getPassword());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @Operation(summary = "Get user profile", description = "Returns the profile of the authenticated user")
@@ -53,6 +54,7 @@ public class AuthController {
                 user.getFullName(),
                 user.getRole().name()
         );
-        return ResponseEntity.ok(response);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }
