@@ -16,6 +16,20 @@ target/
 ### IntelliJ IDEA ###
 .idea
 *.iws
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
 *.iml
 *.ipr
 
@@ -40,3 +54,19 @@ build/
 
 ### Binary packages ###
 *.deb
+*.iso
+*.img
+*.dmg
+*.pkg
+*.msi
+*.exe
+*.AppImage
+
+### Archives ###
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.tbz2
+*.7z
+*.rar
