@@ -33,7 +33,8 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final ObjectProvider<JwtAuthenticationFilter> jwtAuthenticationFilterProvider;
 
-    public SecurityConfig(@Lazy UserDetailsService userDetailsService, ObjectProvider<JwtAuthenticationFilter> jwtAuthenticationFilterProvider) {
+    public SecurityConfig(@Lazy UserDetailsService userDetailsService,
+            ObjectProvider<JwtAuthenticationFilter> jwtAuthenticationFilterProvider) {
         this.userDetailsService = userDetailsService;
         this.jwtAuthenticationFilterProvider = jwtAuthenticationFilterProvider;
     }
@@ -43,25 +44,23 @@ public class SecurityConfig {
         JwtAuthenticationFilter jwtFilter = jwtAuthenticationFilterProvider.getIfAvailable();
 
         http
-            .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/swagger-ui/**",
-                    "/swagger-ui.html",
-                    "/swagger",
-                    "/v3/api-docs/**",
-                    "/swagger-resources/**",
-                    "/webjars/**",
-                    "/api/auth/**",
-                    "/actuator/health"
-                ).permitAll()
-                .anyRequest().authenticated()
-            )
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .authenticationProvider(authenticationProvider());
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/swagger",
+                                "/v3/api-docs/**",
+                                "/swagger-resources/**",
+                                "/webjars/**",
+                                "/api/auth/**",
+                                "/actuator/health")
+                        .permitAll()
+                        .anyRequest().authenticated())
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authenticationProvider());
 
         if (jwtFilter != null) {
             http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -91,7 +90,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("*")); // Configure appropriately for production
+        configuration.setAllowedOrigins(
+                List.of(
+                        "http://localhost:3000",
+                        "http://localhost:3001"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
@@ -101,4 +103,3 @@ public class SecurityConfig {
         return source;
     }
 }
-
