@@ -19,7 +19,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("E-Radio API")
                         .version("1.0.0")
-                        .description("REST API for E-Radio - Radio Station Management System")
+                        .description("REST API for  streaming radio Radio - Radio Station Management System")
                         .contact(new Contact()
                                 .name("E-Radio Team")
                                 .email("chrisdany9@gmail.com"))

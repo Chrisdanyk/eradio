@@ -31,6 +31,9 @@ public class User implements UserDetails {
     private String email;
 
     @Column(nullable = false)
+    private String fullName;
+
+    @Column(nullable = false)
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -41,6 +44,16 @@ public class User implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    @Override
+    public String getUsername() {
+        return username;
     }
 
     @Override
@@ -62,6 +75,7 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
 
     public enum Role {
         USER, ADMIN

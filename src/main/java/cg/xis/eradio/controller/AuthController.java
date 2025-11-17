@@ -3,6 +3,7 @@ package cg.xis.eradio.controller;
 import cg.xis.eradio.dto.request.LoginRequest;
 import cg.xis.eradio.dto.request.RegisterRequest;
 import cg.xis.eradio.dto.response.AuthResponse;
+import cg.xis.eradio.dto.response.UserProfileResponse;
 import cg.xis.eradio.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -10,12 +11,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@RequiredArgsConstructor
+@RequiredArgsConstructor // Generates constructor for final fields
 @Tag(name = "Authentication", description = "Authentication endpoints for user registration and login")
 public class AuthController {
 
@@ -36,7 +38,23 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = userService.login(request.getUsername(), request.getPassword());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @Operation(summary = "Get user profile", description = "Returns the profile of the authenticated user")
+    @ApiResponse(responseCode = "200", description = "Profile retrieved successfully")
+    @ApiResponse(responseCode = "401", description = "Unauthorized")
+    @GetMapping("/profile")
+    public ResponseEntity<UserProfileResponse> getProfile() {
+        var user = userService.getCurrentUser();
+        var response = new UserProfileResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getFullName(),
+                user.getRole().name()
+        );
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }
-
