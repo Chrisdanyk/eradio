@@ -29,20 +29,25 @@ import cg.xis.eradio.service.JwtService;
 @DisplayName("AuthController Profile Endpoint Integration Tests")
 class AuthControllerProfileTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private JwtService jwtService;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final MockMvc mockMvc;
+    private final JwtService jwtService;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     private User testUser;
     private String validToken;
+
+    @Autowired
+    public AuthControllerProfileTest(
+            MockMvc mockMvc,
+            JwtService jwtService,
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder) {
+        this.mockMvc = mockMvc;
+        this.jwtService = jwtService;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @BeforeEach
     void setUp() {
@@ -192,4 +197,3 @@ class AuthControllerProfileTest {
                 .andExpect(status().isForbidden());
     }
 }
-
