@@ -2,6 +2,7 @@ package cg.xis.eradio.controller;
 
 import cg.xis.eradio.dto.request.LoginRequest;
 import cg.xis.eradio.dto.request.RegisterRequest;
+import cg.xis.eradio.dto.request.UpdateProfileRequest;
 import cg.xis.eradio.dto.response.AuthResponse;
 import cg.xis.eradio.dto.response.UserProfileResponse;
 import cg.xis.eradio.service.UserService;
@@ -11,7 +12,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -55,6 +55,16 @@ public class AuthController {
                 user.getRole().name()
         );
 
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @Operation(summary = "Update user profile", description = "Updates the profile of the authenticated user")
+    @ApiResponse(responseCode = "200", description = "Profile updated successfully")
+    @ApiResponse(responseCode = "400", description = "Invalid input or email already exists")
+    @ApiResponse(responseCode = "401", description = "Unauthorized")
+    @PutMapping("/profile")
+    public ResponseEntity<UserProfileResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
+        UserProfileResponse response = userService.updateProfile(request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }
