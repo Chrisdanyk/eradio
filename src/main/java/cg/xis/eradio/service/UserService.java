@@ -3,7 +3,9 @@ package cg.xis.eradio.service;
 import cg.xis.eradio.domain.entity.User;
 import cg.xis.eradio.domain.repository.UserRepository;
 import cg.xis.eradio.dto.request.RegisterRequest;
+import cg.xis.eradio.dto.request.UpdateProfileRequest;
 import cg.xis.eradio.dto.response.AuthResponse;
+import cg.xis.eradio.dto.response.UserProfileResponse;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -106,5 +108,28 @@ public class UserService implements UserDetailsService {
 
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+    }
+
+    @Transactional
+    public UserProfileResponse updateProfile(UpdateProfileRequest request) {
+        User user = getCurrentUser();
+
+        // Check if email is already taken by another user
+        if (!user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+
+        user.setFullName(request.getFullName());
+        user.setEmail(request.getEmail());
+
+        User updatedUser = userRepository.save(user);
+
+        return new UserProfileResponse(
+                updatedUser.getId(),
+                updatedUser.getUsername(),
+                updatedUser.getEmail(),
+                updatedUser.getFullName(),
+                updatedUser.getRole().name()
+        );
     }
 }
