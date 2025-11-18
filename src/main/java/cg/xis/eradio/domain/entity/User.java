@@ -30,7 +30,7 @@ public class User implements UserDetails {
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String fullName;
 
     @Column(nullable = false)
@@ -75,7 +75,6 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
-
 
     public enum Role {
         USER, ADMIN
