@@ -63,6 +63,12 @@ JWT_EXPIRATION=86400000
 
 # Radio Browser API
 RADIO_BROWSER_API_URL=https://de1.api.radio-browser.info
+
+# Anthropic AI API (for AI-powered recommendations)
+ANTHROPIC_API_KEY=your-anthropic-api-key-here
+
+# Swagger/API Documentation (optional, defaults to false in production)
+SWAGGER_ENABLED=false
 ```
 
 > **Note**: For production, use a strong, randomly generated JWT secret key.
@@ -254,16 +260,82 @@ backend/
 
 ## 📝 Environment Variables
 
-| Variable                 | Description                | Default | Required   |
-| ------------------------ | -------------------------- | ------- | ---------- |
-| `SPRING_PROFILES_ACTIVE` | Spring profile (dev/prod)  | `dev`   | No         |
-| `SERVER_PORT`            | Application port           | `8080`  | No         |
-| `JWT_SECRET`             | Secret key for JWT signing | -       | Yes        |
-| `JWT_EXPIRATION`         | JWT expiration time (ms)   | -       | Yes        |
-| `DB_URL`                 | Database connection URL    | -       | Yes (prod) |
-| `DB_USERNAME`            | Database username          | -       | Yes (prod) |
-| `DB_PASSWORD`            | Database password          | -       | Yes (prod) |
-| `RADIO_BROWSER_API_URL`  | Radio Browser API base URL | -       | Yes        |
+| Variable                 | Description                              | Default                              | Required              |
+| ------------------------ | ---------------------------------------- | ------------------------------------ | --------------------- |
+| `SPRING_PROFILES_ACTIVE` | Spring profile (dev/prod)                | `dev`                                | No                    |
+| `SERVER_PORT`            | Application port                         | `8080`                               | No                    |
+| `JWT_SECRET`             | Secret key for JWT signing               | -                                    | Yes                   |
+| `JWT_EXPIRATION`         | JWT expiration time (ms)                 | `86400000`                           | No                    |
+| `DB_URL`                 | Database connection URL                  | -                                    | Yes (prod)            |
+| `DB_USERNAME`            | Database username                        | -                                    | Yes (prod)            |
+| `DB_PASSWORD`            | Database password                        | -                                    | Yes (prod)            |
+| `RADIO_BROWSER_API_URL`  | Radio Browser API base URL               | `https://de1.api.radio-browser.info` | No                    |
+| `ANTHROPIC_API_KEY`      | Anthropic API key for AI recommendations | -                                    | Yes (for AI features) |
+| `SWAGGER_ENABLED`        | Enable Swagger UI                        | `false`                              | No                    |
+
+### Environment Variables in CI/CD Pipelines
+
+**Important**: `.env` files are **NOT** committed to GitHub (they're in `.gitignore`). In CI/CD pipelines, environment variables are set differently:
+
+#### For GitHub Actions
+
+1. **Set up GitHub Secrets**:
+   - Go to your repository on GitHub
+   - Navigate to: **Settings** → **Secrets and variables** → **Actions**
+   - Click **New repository secret**
+   - Add each sensitive variable:
+     - `JWT_SECRET`
+     - `ANTHROPIC_API_KEY`
+     - `DB_USERNAME` (for production)
+     - `DB_PASSWORD` (for production)
+     - Any other sensitive values
+
+2. **Use secrets in workflow files**:
+   ```yaml
+   env:
+     JWT_SECRET: ${{ secrets.JWT_SECRET }}
+     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+   ```
+
+3. **For non-sensitive variables**, set them directly in the workflow:
+   ```yaml
+   env:
+     SPRING_PROFILES_ACTIVE: prod
+     SERVER_PORT: 8080
+     RADIO_BROWSER_API_URL: https://de1.api.radio-browser.info
+   ```
+
+#### For Other CI/CD Platforms
+
+- **GitLab CI**: Use [CI/CD variables](https://docs.gitlab.com/ee/ci/variables/)
+- **Jenkins**: Use [Credentials](https://www.jenkins.io/doc/book/using/using-credentials/)
+- **CircleCI**: Use [Environment variables](https://circleci.com/docs/env-vars/)
+- **AWS CodePipeline**: Use [Parameter Store](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html) or [Secrets Manager](https://docs.aws.amazon.com/secretsmanager/)
+
+#### Creating `.env` for Local Development
+
+1. Copy the example template (create `.env.example` in your repo):
+   ```bash
+   # .env.example (safe to commit)
+   SPRING_PROFILES_ACTIVE=dev
+   SERVER_PORT=8080
+   DB_URL=jdbc:postgresql://localhost:5432/eradio
+   DB_USERNAME=your_username
+   DB_PASSWORD=your_password
+   JWT_SECRET=your-secret-key-here
+   JWT_EXPIRATION=86400000
+   RADIO_BROWSER_API_URL=https://de1.api.radio-browser.info
+   ANTHROPIC_API_KEY=your-anthropic-api-key-here
+   SWAGGER_ENABLED=false
+   ```
+
+2. Create your local `.env` file:
+   ```bash
+   cp .env.example .env
+   # Then edit .env with your actual values
+   ```
+
+> **Security Note**: Never commit `.env` files to version control. Always use secrets management in CI/CD pipelines.
 
 ## 🐛 Troubleshooting
 

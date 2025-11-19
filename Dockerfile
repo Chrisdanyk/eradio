@@ -7,11 +7,9 @@ WORKDIR /app
 
 # Copy pom.xml first for better layer caching
 COPY pom.xml .
-COPY .mvn .mvn
-COPY mvnw .
-COPY mvnw.cmd .
 
 # Download dependencies (this layer will be cached if pom.xml doesn't change)
+# Using mvn directly since the base image already has Maven installed
 RUN mvn dependency:go-offline -B
 
 # Copy source code
@@ -21,18 +19,21 @@ COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 # Stage 2: Runtime stage
-FROM eclipse-temurin:17-jre-alpine
+# Using jre (not alpine) for better ARM64/Apple Silicon support
+FROM eclipse-temurin:17-jre
 
 # Add metadata labels
 LABEL maintainer="eradio-team"
 LABEL description="E-Radio Backend Application"
 LABEL version="0.0.1-SNAPSHOT"
 
-# Install wget for health checks
-RUN apk add --no-cache wget
+# Install wget for health checks (Debian-based, not Alpine)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends wget && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user for security
-RUN addgroup -S spring && adduser -S spring -G spring
+RUN groupadd -r spring && useradd -r -g spring spring
 
 # Set working directory
 WORKDIR /app
