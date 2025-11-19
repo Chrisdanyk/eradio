@@ -56,13 +56,11 @@ public class SecurityConfig {
                     "/webjars/**",
                     "/api/auth/register",
                     "/api/auth/login",
-                    "/actuator/health"
-                ).permitAll()
-                .anyRequest().authenticated()
-            )
+                                "/actuator/health")
+                        .permitAll()
+                        .anyRequest().authenticated())
             .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider());
         if (jwtFilter != null) {
             http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
