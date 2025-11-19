@@ -6,13 +6,28 @@ services:
     container_name: eradio-backend
     ports:
       - "${SERVER_PORT:-8080}:8080"
+    # Load environment variables from .env file on the host machine
+    # The .env file is NOT copied into the Docker image (see .dockerignore)
+    # Docker Compose reads it from the host when you run 'docker-compose up'
+    # Create a .env file in the backend directory with all required variables
+    # See README.md for the complete list of required environment variables
     env_file:
       - .env
     environment:
+      # Override or set specific values (these take precedence over .env file)
       - SPRING_PROFILES_ACTIVE=prod
       - DB_URL=jdbc:postgresql://postgres:5432/eradio
+
+      # Variables from .env file (with defaults where applicable)
+      # Required: JWT_SECRET, DB_USERNAME, DB_PASSWORD, ANTHROPIC_API_KEY
+      - SERVER_PORT=${SERVER_PORT:-8080}
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
+      - RADIO_BROWSER_API_URL=${RADIO_BROWSER_API_URL:-https://de1.api.radio-browser.info}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SWAGGER_ENABLED=${SWAGGER_ENABLED:-false}
     depends_on:
       postgres:
         condition: service_healthy
