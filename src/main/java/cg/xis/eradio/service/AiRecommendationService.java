@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,7 +41,9 @@ public class AiRecommendationService {
     private static final int CANDIDATE_POOL_SIZE = 100;
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "recommendations", keyGenerator = "recommendationsKeyGenerator")
     public RecommendationsResponse getRecommendations(User user, int limit) {
+        log.debug("Generating fresh recommendations for user: {}", user.getId());
         // Get user's favorite stations
         List<Favorite> favorites = favoriteRepository.findByUser(user,
                 PageRequest.of(0, 50)).getContent();

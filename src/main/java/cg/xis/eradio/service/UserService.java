@@ -24,16 +24,19 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
     private final AuthenticationManager authenticationManager;
 
     public UserService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
+                       RefreshTokenService refreshTokenService,
                        @Lazy AuthenticationManager authenticationManager) {
 
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
         this.authenticationManager = authenticationManager;
     }
 
@@ -66,9 +69,12 @@ public class UserService implements UserDetailsService {
         User savedUser = userRepository.save(user);
 
         String token = jwtService.generateToken(savedUser);
+        String refreshToken = jwtService.generateRefreshToken(savedUser);
+        refreshTokenService.storeRefreshToken(refreshToken, savedUser.getUsername());
 
         return AuthResponse.builder()
                 .token(token)
+                .refreshToken(refreshToken)
                 .userId(savedUser.getId())
                 .username(savedUser.getUsername())
                 .email(savedUser.getEmail())
@@ -87,9 +93,12 @@ public class UserService implements UserDetailsService {
                         new UsernameNotFoundException("User not found: " + username));
 
         String token = jwtService.generateToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
+        refreshTokenService.storeRefreshToken(refreshToken, user.getUsername());
 
         return AuthResponse.builder()
                 .token(token)
+                .refreshToken(refreshToken)
                 .userId(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
@@ -131,5 +140,40 @@ public class UserService implements UserDetailsService {
                 updatedUser.getFullName(),
                 updatedUser.getRole().name()
         );
+    }
+
+    public AuthResponse refreshToken(String refreshToken) {
+        // Validate refresh token
+        String username = refreshTokenService.validateAndGetUsername(refreshToken);
+        if (username == null) {
+            throw new IllegalArgumentException("Invalid refresh token");
+        }
+
+        // Validate token format and expiration
+        if (!jwtService.validateToken(refreshToken)) {
+            refreshTokenService.removeRefreshToken(refreshToken);
+            throw new IllegalArgumentException("Refresh token expired");
+        }
+
+        // Load user
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+
+        // Generate new tokens
+        String newToken = jwtService.generateToken(user);
+        String newRefreshToken = jwtService.generateRefreshToken(user);
+
+        // Remove old refresh token and store new one
+        refreshTokenService.removeRefreshToken(refreshToken);
+        refreshTokenService.storeRefreshToken(newRefreshToken, user.getUsername());
+
+        return AuthResponse.builder()
+                .token(newToken)
+                .refreshToken(newRefreshToken)
+                .userId(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .build();
     }
 }

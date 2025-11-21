@@ -9,6 +9,7 @@ import cg.xis.eradio.dto.response.PageResponse;
 import cg.xis.eradio.dto.response.RadioStationResponse;
 import cg.xis.eradio.infrastructure.mapper.RadioStationMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +28,7 @@ public class FavoriteService {
     private final RadioStationMapper radioStationMapper;
 
     @Transactional
+    @CacheEvict(value = "recommendations", allEntries = true)
     public void addFavorite(Long stationId, User user) {
         if (stationId == null) {
             throw new IllegalArgumentException("Station ID cannot be null");
@@ -51,6 +53,7 @@ public class FavoriteService {
     }
 
     @Transactional
+    @CacheEvict(value = "recommendations", allEntries = true)
     public void removeFavorite(Long stationId, User user) {
         if (stationId == null) {
             throw new IllegalArgumentException("Station ID cannot be null");
