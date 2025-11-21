@@ -1,6 +1,7 @@
 package cg.xis.eradio.security;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -24,6 +25,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Configuration
 @EnableWebSecurity
@@ -32,6 +35,9 @@ public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
     private final ObjectProvider<JwtAuthenticationFilter> jwtAuthenticationFilterProvider;
+
+    @Value("${cors.allowed-origins:http://localhost:3000,http://localhost:3001}")
+    private String allowedOrigins;
 
     public SecurityConfig(@Lazy UserDetailsService userDetailsService,
             ObjectProvider<JwtAuthenticationFilter> jwtAuthenticationFilterProvider) {
@@ -56,6 +62,7 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/api/auth/register",
                                 "/api/auth/login",
+                                "/api/auth/refresh",
                                 "/actuator/health")
                         .permitAll()
                         .anyRequest().authenticated())
@@ -90,10 +97,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(
-                List.of(
-                        "http://localhost:3000",
-                        "http://localhost:3001"));
+
+        // Parse comma-separated origins from configuration
+        List<String> origins = Stream.of(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .collect(Collectors.toList());
+
+        configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

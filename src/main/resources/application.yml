@@ -38,6 +38,13 @@ jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION}
 
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001}
+
+recommendations:
+  cache:
+    ttl: ${RECOMMENDATIONS_CACHE_TTL:3600} # Cache TTL in seconds (default: 1 hour)
+
 radio-browser:
   api:
     base-url: ${RADIO_BROWSER_API_URL}

@@ -1,6 +1,7 @@
 package cg.xis.eradio.controller;
 
 import cg.xis.eradio.dto.request.LoginRequest;
+import cg.xis.eradio.dto.request.RefreshTokenRequest;
 import cg.xis.eradio.dto.request.RegisterRequest;
 import cg.xis.eradio.dto.request.UpdateProfileRequest;
 import cg.xis.eradio.dto.response.AuthResponse;
@@ -38,6 +39,15 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = userService.login(request.getUsername(), request.getPassword());
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @Operation(summary = "Refresh access token", description = "Refreshes the access token using a valid refresh token")
+    @ApiResponse(responseCode = "200", description = "Token refreshed successfully")
+    @ApiResponse(responseCode = "400", description = "Invalid or expired refresh token")
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        AuthResponse response = userService.refreshToken(request.getRefreshToken());
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
